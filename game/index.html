@@ -3,17 +3,187 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Block Dodger</title>
+<title>Sunfall City — an original open-world crime game</title>
 <style>
-  html, body { margin: 0; height: 100%; overflow: hidden; background: #11141b; }
-  #game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
-  /* Read aloud, never shown: the status line screen readers announce. */
-  #status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #1a1428;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: #f5efe2; }
+  #app, #app canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+  button { font: inherit; cursor: pointer; border: 0; border-radius: 10px;
+    padding: 12px 26px; font-weight: 700; letter-spacing: 0.04em; color: #fff;
+    background: linear-gradient(180deg, #f07f2e, #d84f35); box-shadow: 0 4px 18px rgba(216,79,53,0.45);
+    transition: transform 0.12s ease, box-shadow 0.12s ease; }
+  button:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(216,79,53,0.55); }
+  button.ghost { background: rgba(255,255,255,0.10); box-shadow: none; border: 1px solid rgba(255,255,255,0.25); }
+
+  /* ---------- HUD ---------- */
+  #hud { position: fixed; inset: 0; pointer-events: none; z-index: 10; }
+  #minimap { position: absolute; top: 16px; left: 16px; width: 192px; height: 192px;
+    border-radius: 50%; box-shadow: 0 6px 24px rgba(0,0,0,0.45); }
+  #topRight { position: absolute; top: 14px; right: 20px; text-align: right; }
+  #cashVal { font-size: 30px; font-weight: 800; color: #ffd98a; text-shadow: 0 2px 10px rgba(0,0,0,0.6); }
+  #stars { font-size: 23px; color: #ffc93a; letter-spacing: 4px; text-shadow: 0 2px 8px rgba(0,0,0,0.7); }
+  #objective { position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
+    max-width: 44%; text-align: center; font-size: 15.5px; font-weight: 600;
+    background: rgba(10,14,22,0.55); padding: 8px 18px; border-radius: 999px;
+    border: 1px solid rgba(255,201,58,0.25); }
+  #objective:empty { display: none; }
+  #timerVal { position: absolute; top: 62px; left: 50%; transform: translateX(-50%);
+    font-size: 19px; font-weight: 800; color: #ffb36b; text-shadow: 0 2px 8px rgba(0,0,0,0.7); }
+  #bottomLeft { position: absolute; left: 18px; bottom: 18px; }
+  #healthWrap { width: 216px; height: 14px; border-radius: 7px; background: rgba(8,10,16,0.65);
+    border: 1px solid rgba(255,255,255,0.25); overflow: hidden; }
+  #healthFill { height: 100%; width: 100%; background: #59d06a; transition: width 0.18s ease; }
+  #weaponVal { margin-top: 7px; font-size: 14px; font-weight: 700; letter-spacing: 0.12em;
+    color: #e8e4da; text-shadow: 0 1px 6px rgba(0,0,0,0.8); }
+  #speedWrap { position: absolute; right: 20px; bottom: 18px; display: none;
+    font-size: 27px; font-weight: 800; color: #fff; text-shadow: 0 2px 10px rgba(0,0,0,0.65); }
+  #bustWrap { position: absolute; left: 50%; bottom: 29%; transform: translateX(-50%);
+    width: 264px; display: none; text-align: center; }
+  #bustLabel { font-size: 21px; font-weight: 900; letter-spacing: 0.3em; color: #ff5a4a;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.8); animation: blink 0.5s steps(2) infinite; }
+  @keyframes blink { 50% { opacity: 0.35; } }
+  #bustBar { height: 10px; margin-top: 6px; border-radius: 5px; background: rgba(8,10,16,0.65);
+    border: 1px solid rgba(255,255,255,0.3); overflow: hidden; }
+  #bustFill { height: 100%; width: 0%; background: #ff5a4a; }
+  #hint { position: absolute; left: 50%; bottom: 11%; transform: translateX(-50%);
+    font-size: 15px; font-weight: 700; background: rgba(10,14,22,0.6); padding: 7px 16px;
+    border-radius: 999px; transition: opacity 0.15s ease; }
+  #banner { position: absolute; top: 21%; left: 0; right: 0; text-align: center;
+    opacity: 0; transform: translateY(10px) scale(0.97); transition: all 0.3s ease; }
+  #banner.show { opacity: 1; transform: translateY(0) scale(1); }
+  #bannerTitle { font-size: 46px; font-weight: 900; letter-spacing: 0.14em;
+    background: linear-gradient(180deg, #ffe9b0, #f07f2e); -webkit-background-clip: text;
+    background-clip: text; -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 3px 12px rgba(0,0,0,0.55)); }
+  #bannerSub { font-size: 18px; font-weight: 600; color: #fff; text-shadow: 0 2px 8px rgba(0,0,0,0.7); }
+  #dialogue { position: absolute; left: 50%; bottom: 4.5%; transform: translateX(-50%) translateY(16px);
+    width: min(580px, 86vw); background: rgba(12,14,24,0.78); border: 1px solid rgba(255,179,107,0.35);
+    border-radius: 12px; padding: 12px 18px; opacity: 0; transition: all 0.25s ease; }
+  #dialogue.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  #dlgWho { font-size: 12px; font-weight: 800; letter-spacing: 0.22em; color: #ffb36b; text-transform: uppercase; }
+  #dlgText { font-size: 16.5px; margin-top: 3px; line-height: 1.4; }
+  #toast { position: absolute; top: 100px; left: 50%; transform: translateX(-50%);
+    font-size: 14px; font-weight: 700; background: rgba(10,14,22,0.65); padding: 6px 14px;
+    border-radius: 999px; opacity: 0; transition: opacity 0.2s ease; }
+  #toast.show { opacity: 1; }
+  #crosshair { position: absolute; left: 50%; top: 50%; width: 5px; height: 5px; margin: -2.5px;
+    border-radius: 50%; background: rgba(255,255,255,0.9); box-shadow: 0 0 5px rgba(0,0,0,0.9); display: none; }
+  body[data-mode="playing"] #crosshair { display: block; }
+  #dmg { position: fixed; inset: 0; pointer-events: none; z-index: 5; opacity: 0;
+    background: radial-gradient(ellipse at center, transparent 52%, rgba(205,25,25,0.55) 100%); }
+
+  /* ---------- overlays ---------- */
+  .overlay { position: fixed; inset: 0; z-index: 20; display: flex; align-items: center;
+    justify-content: center; background: linear-gradient(180deg, rgba(24,16,44,0.30), rgba(10,8,24,0.58)); }
+  .panel { max-width: 620px; width: calc(100vw - 48px); max-height: calc(100vh - 40px); overflow: auto;
+    background: rgba(14,17,30,0.86); border: 1px solid rgba(255,179,107,0.35); border-radius: 18px;
+    padding: 30px 38px; text-align: center; backdrop-filter: blur(7px);
+    box-shadow: 0 24px 70px rgba(0,0,0,0.55); }
+  .panel.small { max-width: 400px; }
+  .panel h1 { margin: 0 0 4px; font-size: 52px; font-weight: 900; letter-spacing: 0.1em;
+    background: linear-gradient(180deg, #ffe9b0 15%, #f07f2e 70%, #d84f35);
+    -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+  .panel h2 { margin: 0 0 10px; font-size: 32px; letter-spacing: 0.12em; }
+  .tag { margin: 0 0 12px; font-size: 16.5px; color: #ffd98a; font-weight: 600; }
+  .story { font-size: 15px; line-height: 1.55; color: #d9d2c2; }
+  .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 5px 22px; text-align: left;
+    margin: 18px auto 6px; max-width: 480px; font-size: 13.5px; color: #c9c2b2; }
+  .controls b { color: #fff; background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.22);
+    border-radius: 5px; padding: 1px 7px; margin-right: 7px; font-size: 12.5px; white-space: nowrap; }
+  .buttons { display: flex; gap: 12px; justify-content: center; margin-top: 20px; flex-wrap: wrap; }
+  .fine { margin-top: 16px; font-size: 12.5px; color: #9a937f; }
+  #endTitle.busted { color: #7fb2ff; }
+  #endTitle.wasted { color: #ff5a4a; }
 </style>
 </head>
 <body>
-<canvas id="game" aria-label="Block Dodger: move the paddle left and right to dodge falling blocks and catch coins"></canvas>
-<p id="status" role="status" aria-live="polite"></p>
-<script type="module" src="./src/main.js"></script>
+<div id="app"></div>
+
+<div id="hud" style="display:none">
+  <canvas id="minimap" width="192" height="192"></canvas>
+  <div id="topRight">
+    <div id="cashVal">$250</div>
+    <div id="stars">☆☆☆☆☆</div>
+  </div>
+  <div id="objective"></div>
+  <div id="timerVal"></div>
+  <div id="bottomLeft">
+    <div id="healthWrap"><div id="healthFill"></div></div>
+    <div id="weaponVal">PISTOL · 12</div>
+  </div>
+  <div id="speedWrap"><span id="speedVal">0 km/h</span></div>
+  <div id="bustWrap">
+    <div id="bustLabel">BUSTED</div>
+    <div id="bustBar"><div id="bustFill"></div></div>
+  </div>
+  <div id="hint"></div>
+  <div id="banner"><div id="bannerTitle"></div><div id="bannerSub"></div></div>
+  <div id="dialogue" role="status"><div id="dlgWho"></div><div id="dlgText"></div></div>
+  <div id="toast"></div>
+  <div id="crosshair"></div>
+</div>
+<div id="dmg"></div>
+
+<div id="startScreen" class="overlay">
+  <div class="panel">
+    <h1>SUNFALL CITY</h1>
+    <p class="tag">A sun-soaked palm-coast city. One courier. Five jobs. Every badge in town.</p>
+    <p class="story">You are <b>Rio</b>, a courier who owes the wrong people. Fixer <b>Marisol Vega</b>
+      has honest-ish work: packages, borrowed wheels, checkpoint bets — and one briefcase half the
+      city wants. Drive anything, dodge the Sunfall PD, and finish the story to make the city yours.</p>
+    <div class="controls">
+      <div><b>W A S D</b> Move / drive</div>
+      <div><b>Mouse</b> Camera (click to lock)</div>
+      <div><b>E</b> Enter / exit car</div>
+      <div><b>Click / F</b> Fire pistol</div>
+      <div><b>R</b> Reload</div>
+      <div><b>Shift</b> Sprint</div>
+      <div><b>Space</b> Jump / handbrake</div>
+      <div><b>P / Esc</b> Pause</div>
+      <div><b>M</b> Mute</div>
+      <div><b>Gold beacon</b> Next job</div>
+    </div>
+    <div class="buttons">
+      <button id="btnNew">New Game</button>
+      <button id="btnContinue" class="ghost" style="display:none">Continue</button>
+    </div>
+    <p class="fine">An original game built with three.js. Runs fully offline; progress saves in this browser.</p>
+  </div>
+</div>
+
+<div id="pauseScreen" class="overlay" style="display:none">
+  <div class="panel small">
+    <h2>PAUSED</h2>
+    <div class="buttons" style="flex-direction:column; align-items:stretch">
+      <button id="btnResume">Resume</button>
+      <button id="btnRestart" class="ghost">Restart story</button>
+      <button id="btnMenu" class="ghost">Main menu</button>
+    </div>
+  </div>
+</div>
+
+<div id="endScreen" class="overlay" style="display:none">
+  <div class="panel small">
+    <h2 id="endTitle">WASTED</h2>
+    <p id="endText" class="story"></p>
+    <div class="buttons">
+      <button id="btnRespawn">Continue</button>
+    </div>
+  </div>
+</div>
+
+<script src="vendor/three.min.js"></script>
+<script src="src/config.js"></script>
+<script src="src/utils.js"></script>
+<script src="src/audio.js"></script>
+<script src="src/city.js"></script>
+<script src="src/vehicles.js"></script>
+<script src="src/peds.js"></script>
+<script src="src/player.js"></script>
+<script src="src/police.js"></script>
+<script src="src/missions.js"></script>
+<script src="src/hud.js"></script>
+<script src="src/save.js"></script>
+<script src="src/main.js"></script>
 </body>
 </html>
