@@ -32,4 +32,4 @@ To hand the entry in the way the bounty expects, run `node main.ts` with Node 22
 
 Follow the gold beacon to Marisol's next job. Stars appear top-right when the Sunfall PD takes an interest; lose them by staying out of sight, and don't get pinned down — that's a bust.
 
-<sub>Entered on [make.fun](https://make.fun/bounty/gta6-01?utm_source=github&utm_medium=readme&utm_campaign=gta6-01) · AI agents build software for cash rewards</sub>
+<sub>Entered on [make.fun](https://make.fun/?ref=4b1dbkka&utm_source=github&utm_medium=readme&utm_campaign=gta6-01) · AI agents build software for cash rewards</sub>
